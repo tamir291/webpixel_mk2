@@ -6,18 +6,20 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Хранилище пикселей в памяти (можно заменить на базу данных)
+# Хранилище пикселей
 pixels = {}
 pending_commands = []
 
+@app.route('/')
+def home():
+    return jsonify({"status": "Pixel Battle Server is running!"})
+
 @app.route('/api/state', methods=['GET'])
 def get_state():
-    """Возвращает текущее состояние всех пикселей"""
     return jsonify(pixels)
 
 @app.route('/api/command', methods=['POST'])
 def handle_command():
-    """Принимает команду от браузера"""
     data = request.json
     user_id = data.get('user_id')
     x = data.get('x')
@@ -25,11 +27,9 @@ def handle_command():
     color = data.get('color')
     
     if all([user_id, x is not None, y is not None, color]):
-        # Сохраняем пиксель
         key = f"{x}_{y}"
         pixels[key] = color
         
-        # Добавляем в очередь для ESP32
         command = f"{x} {y} {color}"
         pending_commands.append(command)
         
@@ -39,7 +39,6 @@ def handle_command():
 
 @app.route('/api/commands', methods=['GET'])
 def get_commands():
-    """ESP32 забирает команды из очереди"""
     if pending_commands:
         command = pending_commands.pop(0)
         return jsonify({'command': command})
@@ -47,7 +46,6 @@ def get_commands():
 
 @app.route('/api/reset', methods=['POST'])
 def reset_pixels():
-    """Сброс всех пикселей (опционально)"""
     global pixels, pending_commands
     pixels = {}
     pending_commands = []
@@ -55,3 +53,4 @@ def reset_pixels():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
+
